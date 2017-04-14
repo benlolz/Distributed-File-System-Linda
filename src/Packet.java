@@ -15,9 +15,9 @@ public class Packet implements Serializable {
 	 * 7: outgoing rd no typeMatch inst 		Packet(7, "Tuple found and send back by"+P1.hostname, tuple);
 	 * 8: ack request 							Packet(8, "ack", nets); 
 	 * 9: ack sent 								Packet(9);
-	 * 10: incoming rd typeMatch instruction	Packet(10, "rd", nets, tuple);
+	 * 10: incoming rd typeMatch instruction	Packet(10, nets, tuple);
 	 * 11: outgoing rd typeMatch inst reply		Packet(11, s, tuple);
-	 * 12: incoming in typeMatch instruction	Packet(12, "in", nets, tuple);
+	 * 12: incoming in typeMatch instruction	Packet(12, nets, tuple);
 	 * 13: outgoing in typeMatch inst reply		Packet(13, s, tuple);
 
 	 */

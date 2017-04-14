@@ -47,6 +47,7 @@ class ServerWorker implements Runnable {
 		this.sock = sock;
 	}
 
+	@SuppressWarnings("unchecked")
 	public void run() {
 		// TODO Auto-generated method stub
 
@@ -142,9 +143,16 @@ class ServerWorker implements Runnable {
 					P1.obOut = new ObjectOutputStream(P1.fileOut);
 					P1.obOut.writeObject(P1.tupleSpace);
 					System.out.println("Tuple added to the Tuple Space and wrote to "+P1.hostname+"'s local disk");
+					P1.fileIn = new FileInputStream(P1.path + "/tuples.txt");
+					P1.obIn = new ObjectInputStream(P1.fileIn);
+					P1.tupleSpace = (Hashtable<String, List<HashTableEntry>>) P1.obIn.readObject();
 					
-					P1.obOut.close();
 					Packet outPacket = new Packet(3, "Tuple added to the destnation host's Tuple Space");	
+					
+					P1.fileOut.close();
+					P1.obOut.close();
+					P1.fileIn.close();
+					P1.obIn.close();
 					out.writeObject(outPacket);								//send reply for out
 					out.flush();
 				}
@@ -183,40 +191,57 @@ class ServerWorker implements Runnable {
 				else if (pacRecvd.type == 6 && pacRecvd.tuple != null) {				// Handle rd no typeMatch instruction
 					List<Object> tuple = pacRecvd.tuple;
 					String hashcode = Check.hashString(Check.tupleToString(tuple));
+					//System.out.println("Received hashcode = "+hashcode);
 					Packet outPacket = null;
 					
-					while (true) {
-						P1.fileIn = new FileInputStream(P1.path + "/tuples.txt");
-						P1.obIn = new ObjectInputStream(P1.fileIn);
+					
+					while (outPacket == null) {
+						//P1.fileIn = new FileInputStream(P1.path + "/tuples.txt");
+						//P1.obIn = new ObjectInputStream(P1.fileIn);
 						@SuppressWarnings("unchecked")
-						Hashtable<String, List<HashTableEntry>> tmpTuples = 
-						(Hashtable<String, List<HashTableEntry>>) P1.obIn.readObject();
+						Hashtable<String, List<HashTableEntry>> tmpTuples = P1.tupleSpace;
+						// = (Hashtable<String, List<HashTableEntry>>) obIn.readObject();
 						
 						if (tmpTuples.containsKey(hashcode)) {
-							List<HashTableEntry> innerHT = tmpTuples.get(hashcode);
+							List<HashTableEntry> entryList = tmpTuples.get(hashcode);
 							
-							for(HashTableEntry entry: innerHT) {
+							for(HashTableEntry entry: entryList) {
 								if (Check.compareTuples(entry.tuple, tuple)) {
-									outPacket = new Packet(7,"Tuple found and send back by"+P1.hostname,entry.tuple);
-									break;				//send rd no typeMatch reply
+									outPacket = new Packet(7,"Tuple found and send back by "+P1.hostname,entry.tuple);
+									//System.out.println("Reached here before break");
+									
+									break;												//send rd no typeMatch reply
 								}
 							}
-							break;
-							
 						}
-						continue;
 					}
 					out.writeObject(outPacket);
 					out.flush();
-					P1.obIn.close();
+					
 
 				}
 				
 				else if (pacRecvd.type == 10 && pacRecvd.tuple != null) {
 					List<Object> tuple = pacRecvd.tuple;
+					System.out.println("Checking matches in TupleSpace...");
+					List<Object> returnTuple = Check.getTuple(tuple, P1.tupleSpace);
+					Packet outPacket = null;
+					while (returnTuple != null) {
+						returnTuple = Check.getTuple(tuple, P1.tupleSpace);
+						outPacket = new Packet(11, P1.hostname, returnTuple);
+						
+						
+					}
+					out.writeObject(outPacket);
+					out.flush();
 				}
 				
+				else {
+					System.out.println(P1.hostname +".Server received unknown command");
+				}
 				
+				in.close();
+				out.close();
 				
 				System.out.print("linda> ");
 

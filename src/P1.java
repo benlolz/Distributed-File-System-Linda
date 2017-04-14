@@ -1,11 +1,8 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 public class P1 {
 
@@ -43,14 +40,16 @@ public class P1 {
 		h.put(7, "Outgoing reply message for rd request");
 		h.put(8, "Ack request");
 		h.put(9, "Ack sent");
-		h.put(10, "Incoming boardcast instruction");
-		h.put(11, "Outgoing reply message of boardcast");
+		h.put(10, "Incoming rd boardcast instruction");
+		h.put(11, "Outgoing rd reply message of boardcast");
+		h.put(12, "Incoming in boardcast instruction");
+		h.put(13, "Outgoing in reply message of boardcast");
 
 	}
 
 	public static void main(String[] args) throws Exception {
 
-		if (args == null || args.length != 1 || args[0].matches("\\s") || !args[0].matches("^[a-zA-Z][a-zA-Z0-9]*")) {
+		if (args == null || args.length != 1 || args[0].matches("\\s") || !args[0].matches("^[a-zA-Z][a-zA-Z0-9]*$")) {
 			System.out.println("Invalid command, check the hostname, hostname cannot start with a number and cannot use any special characters");
 			return;
 		}
@@ -67,6 +66,8 @@ public class P1 {
 
 		nets.put(0, new String[] { hostname, localAddr, port });
 		hostCount = 1;
+		
+		
 
 		while (true) {
 
@@ -163,7 +164,7 @@ public class P1 {
 					String destAddr = nets.get(host)[1];
 					String destPort = nets.get(host)[2];
 					Packet myPacket = new Packet(2, tuple);						//send out instruction
-					System.out.println("Put tuple "+cmd+"on "+destAddr);
+					System.out.println("Put tuple "+cmd+" on "+destAddr+":"+destPort);
 					
 					Client outClient = new Client();
 					outClient.sendTo(destAddr, destPort, myPacket);
@@ -214,13 +215,17 @@ public class P1 {
 						if (obj instanceof String[]) {
 							broadcast = true;
 							break;
+							
+							
 						}
 					}
 					if (!broadcast) {
 						int host = Check.md5Sum(tuple) % hostCount;
 						String destAddr = nets.get(host)[1];
 						String destPort = nets.get(host)[2];
-						System.out.println("Get tuple "+cmd+" from "+ destAddr);
+						System.out.println("Get tuple "+cmd+" from "+ destAddr+":"+destPort);
+						
+						
 						
 						Packet myPacket = new Packet(6, tuple);						//send rd no typeMatch inst
 						
@@ -239,9 +244,18 @@ public class P1 {
 						
 					}
 					else {
-						Client broadClient = new Client();
+						Client rdbroadClient = new Client();
 						Packet outPacket = new Packet(10, nets, tuple);		//send rd typeMatch broadcast request
-						broadClient.broadcast(nets, outPacket);
+						rdbroadClient.broadcast(nets, outPacket);
+						
+						while (pacsRecvd[0] == null) {
+							pacsRecvd[0]=rdbroadClient.reply;
+							if (pacsRecvd[0] != null && pacsRecvd[0].type == 11) {	//receive rd no typeMatch reply
+								System.out.println("Received matched tuple from "+pacsRecvd[0].s);
+								System.out.println("tuple = " + Check.displayTuple(pacsRecvd[0].tuple));
+								break;
+							}
+						}
 					}
 					
 					

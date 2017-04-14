@@ -1,13 +1,9 @@
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.Set;
 
 public class Check {
 	
@@ -166,17 +162,17 @@ public class Check {
 			if (isString(strArray[i])) {
 				strArray[i] = strArray[i].substring(1, strArray[i].length()-1);
 				P1.tuple.add(strArray[i]);
-				System.out.println(strArray[i]+" is added to tuple");
+				//System.out.println(strArray[i]+" is added to tuple");
 				continue;
 			}
 			else if (isInt(strArray[i])) {		
 				P1.tuple.add(Integer.parseInt(strArray[i]));
-				System.out.println(strArray[i]+" is added to tuple");
+				//System.out.println(strArray[i]+" is added to tuple");
 				continue;
 			}
 			else if (isFloat(strArray[i])) {	
 					P1.tuple.add(Float.parseFloat(strArray[i]));
-					System.out.println(strArray[i]+" is added to tuple");
+					//System.out.println(strArray[i]+" is added to tuple");
 					continue;
 
 			}
@@ -215,23 +211,23 @@ public class Check {
 			if (isString(strArray[i])) {
 				strArray[i] = strArray[i].substring(1, strArray[i].length()-1);
 				P1.tuple.add(strArray[i]);
-				System.out.println(strArray[i]+" is added to tuple");
+				//System.out.println(strArray[i]+" is added to tuple");
 				continue;
 			}
 			else if (isInt(strArray[i])) {		
 				P1.tuple.add(Integer.parseInt(strArray[i]));
-				System.out.println(strArray[i]+" is added to tuple");
+				//System.out.println(strArray[i]+" is added to tuple");
 				continue;
 			}
 			else if (isFloat(strArray[i])) {	
 					P1.tuple.add(Float.parseFloat(strArray[i]));
-					System.out.println(strArray[i]+" is added to tuple");
+					//System.out.println(strArray[i]+" is added to tuple");
 					continue;
 
 			}
 			else if (isTypeMatch(strArray[i])) {
 				P1.tuple.add(typeMatch);
-				System.out.println(strArray[i]+" is a type match for "+typeMatch[1]+"added to tuple");
+				//System.out.println(strArray[i]+" is a type match for "+typeMatch[1]+"added to tuple");
 				continue;
 			}
 			else {
@@ -276,14 +272,15 @@ public class Check {
 		return false;
 	}
 	public static boolean isTypeMatch(String s) {
-		if (s.matches("?.*:.+")) {
+		typeMatch = new String[2];
+		if (s.matches("[?].*:.+")) {
 			s.substring(1);
 			String variable;
 			String type;
 			for (int i = s.length() - 1; i > 0; i--) {
 				if (s.charAt(i) == ':') {
 					variable = s.substring(0, i);
-					if (variable == null || variable.length() == 0 && !variable.matches("^[a-zA-Z_$][a-zA-Z_$0-9]*$")) {
+					if (variable == null || variable.length() == 0 && !variable.matches("^[a-zA-Z][a-zA-Z0-9]*$")) {
 						return false;
 					}
 					typeMatch[0] = variable;
@@ -404,12 +401,22 @@ public class Check {
 	
 	public static List<Object> getTuple (List<Object> t, Hashtable<String, List<HashTableEntry>> ts) {
 		
-		boolean bl = false;
+		List<Object> returnTuple = null;
 		
-		for (String key:ts.keySet()) {
+		for (String key : ts.keySet()) {
+			
+			if(returnTuple != null) {
+				break;
+			}
+			
 			List<HashTableEntry> entryList = ts.get(key);
-			Searchtuple:
+			
 			for (int i = 0; i < entryList.size(); i++) {
+				
+				if(returnTuple != null) {
+					break;
+				} 
+				
 				List<Object> tuple = entryList.get(i).tuple;
 				if (tuple.size() != t.size()) {
 					continue;
@@ -419,7 +426,7 @@ public class Check {
 						String tmp = ((String[]) t.get(j))[1];
 						if (tmp.equals("string")){
 							if (tuple.get(j) instanceof String) {
-								continue Searchtuple;
+								continue;
 							}
 						}
 						else if (tmp.equals("int")) {
@@ -449,18 +456,34 @@ public class Check {
 						}
 					}
 				}
-				return tuple;
 				
-				
+				returnTuple = tuple;
 			}
 			
 		}
 		
 		
-		return null;
+		return returnTuple;
+	}
+	
+	public static String displayTuple(List<Object> t) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < t.size(); i++) {
+			if (t.get(i) instanceof String) {
+				sb.append(t.get(i).toString() + ", ");
+			}
+			else if (t.get(i) instanceof Integer) {
+				sb.append(t.get(i).toString() + ", ");
+			}
+			else if (t.get(i) instanceof Float) {
+				sb.append(t.get(i).toString() + ", ");
+			}
+		}
+		return sb.substring(0,sb.length()-2).toString();
 	}
 	
 }
+
 
 
 

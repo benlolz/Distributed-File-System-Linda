@@ -54,7 +54,7 @@ public class Client {
 
 				String destAddr = nets.get(i)[1];
 				String destPort = nets.get(i)[2];
-				System.out.println("Connecting NO." + i + " destination = " + destAddr + " at port " + destPort);
+				System.out.println("Sending to NO." + i + " destination = " + destAddr + " at port " + destPort);
 				Socket sock = new Socket(destAddr, Integer.parseInt(destPort));
 				ClientWorker worker = new ClientWorker(outPacket, sock);
 				Thread clientWorkerT = new Thread(worker);
@@ -98,12 +98,14 @@ public class Client {
 				recPack = (Packet) in.readObject();
 
 				if (recPack != null) {
-					synchronized (this) {
+					synchronized (msgQ) {
 						msgQ.offer(recPack);
 						msgQ.notifyAll();
 					}
 					// System.out.println("Client sock close");
 				}
+				out.close();
+				in.close();
 				sock.close();
 			} catch (ClassNotFoundException | IOException e) {
 				// TODO Auto-generated catch block
