@@ -13,7 +13,7 @@ public class Check {
 	
 	public static String[] typeMatch;  //typeMatch[0] = variable name; typeMatch[1] = type;
 	
-	public static boolean checkIP(String s) {
+	public static boolean checkIP(String s) { 
 
 		if (s.length() < 4)
 			return false;
