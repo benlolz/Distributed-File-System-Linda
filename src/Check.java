@@ -1,8 +1,10 @@
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 
 public class Check {
@@ -242,7 +244,14 @@ public class Check {
 	}
 	
 	public static boolean isInt(String s) {
-		if (s.matches("[+-]{0,1}[0-9]*")) {
+		if (s.matches("[+-]{0,1}[0-9]*$")) {
+			try {
+				Integer.parseInt(s);
+			} catch (NumberFormatException e) {
+				// TODO Auto-generated catch block
+				return false;
+				
+			}
 			if (Integer.parseInt(s)<=Integer.MAX_VALUE && Integer.parseInt(s)>=Integer.MIN_VALUE) {
 				return true;
 			}
@@ -255,6 +264,12 @@ public class Check {
 	}
 	public static boolean isFloat(String s) {
 		if (s.matches("[+-]{0,1}[0-9]*[.][0-9]*[fF]{0,1}") || s.matches("[+-]{0,1}[0-9]*[.]{0,1}[0-9]*[Ee][+-]{0,1}[0-9]+[fF]{0,1}")) {
+			try {
+				Float.parseFloat(s);
+			} catch (NumberFormatException e) {
+				// TODO Auto-generated catch block
+				return false;
+			}
 			if (Float.parseFloat(s)<=Float.MAX_VALUE && Float.parseFloat(s)>=-Float.MAX_VALUE) {
 				return true;
 			}
@@ -361,22 +376,31 @@ public class Check {
 		}
 		for (int i = 0; i < t1.size(); i++) {
 			if (t1.get(i) instanceof String && t2.get(i) instanceof String) {
+				
 				if (!t1.get(i).equals(t2.get(i))) {
+					System.out.println(t1.get(i) +" is different from "+ t2.get(i));
 					return false;
 				}
 			}
 			else if (t1.get(i) instanceof Integer && t2.get(i) instanceof Integer) {
-				if (t1.get(i) != t2.get(i)) {
+				if (!((Integer) t1.get(i)).equals(((Integer) t2.get(i)))) {
+					System.out.println(t1.get(i) +" is different from "+ t2.get(i));
 					return false;
 				}
 			}
 			else if (t1.get(i) instanceof Float && t2.get(i) instanceof Float) {
-				if (t1.get(i) != t2.get(i)) {
+				if (!((Float) t1.get(i)).equals(((Float) t2.get(i)))) {
+					System.out.println(t1.get(i) +" is different from "+ t2.get(i));
 					return false;
 				}
 			}
+			else {
+				System.out.println("exit compareTuple from else");
+				return false;
+				
+			}
 		}
-		
+		//System.out.println("Compare Tuple Complete, return true;");
 		return true;
 	}
 	
@@ -385,17 +409,22 @@ public class Check {
 		int count = 0;
 		
 		String hashcode = hashString(tupleToString(tuple));
-		if (tupleSpace.contains(hashcode)) {
+		if (tupleSpace.containsKey(hashcode)) {
 			List<HashTableEntry> list = tupleSpace.get(hashcode);
 			for (HashTableEntry entry : list) {
 				if (compareTuples(entry.tuple, tuple)) {
 					count = entry.counts;
+					
+					break;
 				}
 			}
 		}
-		
-		
+		else {
+			return count;
+		}
 		return count;
+		
+		
 		
 	}
 	
@@ -403,66 +432,74 @@ public class Check {
 		
 		List<Object> returnTuple = null;
 		
-		for (String key : ts.keySet()) {
-			
-			if(returnTuple != null) {
-				break;
-			}
-			
-			List<HashTableEntry> entryList = ts.get(key);
-			
-			for (int i = 0; i < entryList.size(); i++) {
-				
-				if(returnTuple != null) {
+		Iterator<String> keySetItr = ts.keySet().iterator();  
+		  while( keySetItr.hasNext()) {
+			  String key = keySetItr.next();
+			  if(returnTuple != null) {
 					break;
-				} 
-				
-				List<Object> tuple = entryList.get(i).tuple;
-				if (tuple.size() != t.size()) {
-					continue;
 				}
-				for (int j = 0; j < t.size(); j++) {
-					if (t.get(j) instanceof String[]) {
-						String tmp = ((String[]) t.get(j))[1];
-						if (tmp.equals("string")){
+				
+				List<HashTableEntry> entryList = ts.get(key);
+				
+				for (int i = 0; i < entryList.size(); i++) {
+					
+					if(returnTuple != null) {
+						break;
+					} 
+					
+					List<Object> tuple = entryList.get(i).tuple;
+					if (tuple.size() != t.size()) {
+						continue;
+					}
+					for (int j = 0; j < t.size(); j++) {
+						if (t.get(j) instanceof String[]) {
+							String tmp = ((String[]) t.get(j))[1];
+							if (tmp.equals("string")){
+								if (tuple.get(j) instanceof String) {
+									continue;
+								}
+							}
+							else if (tmp.equals("int")) {
+								if (tuple.get(j) instanceof Integer) {
+									continue;
+								}
+							} 
+							else if (tmp.equals("float")) {
+								if (tuple.get(j) instanceof Float) {
+									continue;
+								}
+							}
+						}
+						else if (t.get(j) instanceof String) {
 							if (tuple.get(j) instanceof String) {
 								continue;
 							}
 						}
-						else if (tmp.equals("int")) {
+						else if (t.get(j) instanceof Integer) {
 							if (tuple.get(j) instanceof Integer) {
 								continue;
 							}
-						} 
-						else if (tmp.equals("float")) {
+						}
+						else if (t.get(j) instanceof Float) {
 							if (tuple.get(j) instanceof Float) {
 								continue;
 							}
 						}
 					}
-					else if (t.get(j) instanceof String) {
-						if (tuple.get(j) instanceof String) {
-							continue;
-						}
-					}
-					else if (t.get(j) instanceof Integer) {
-						if (tuple.get(j) instanceof Integer) {
-							continue;
-						}
-					}
-					else if (t.get(j) instanceof Float) {
-						if (tuple.get(j) instanceof Float) {
-							continue;
-						}
-					}
+					
+					returnTuple = tuple;
 				}
-				
-				returnTuple = tuple;
-			}
+		  }
+//		for (String key : ts.keySet()) {
 			
+			
+			
+	//	}
+		
+		if (returnTuple != null) {
+			//System.out.println("Check.getTuple() is done");
 		}
-		
-		
+			
 		return returnTuple;
 	}
 	
@@ -479,10 +516,21 @@ public class Check {
 				sb.append(t.get(i).toString() + ", ");
 			}
 		}
-		return sb.substring(0,sb.length()-2).toString();
+		return "("+ sb.substring(0,sb.length()-2).toString()+")";
 	}
 	
 }
+
+
+class HashTableEntry implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -7427326876733890893L;
+	public int counts;
+	public List<Object> tuple;
+}
+
 
 
 

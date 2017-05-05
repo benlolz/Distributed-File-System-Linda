@@ -6,7 +6,7 @@ import java.util.List;
 
 public class P1 {
 
-	static int hostCount;
+	//static int hostCount;
 	static String hostname;
 	static String port;
 	static Hashtable<Integer, String[]> nets;		//[hostname, host IP, host port]
@@ -44,6 +44,8 @@ public class P1 {
 		h.put(11, "Outgoing rd reply message of boardcast");
 		h.put(12, "Incoming in boardcast instruction");
 		h.put(13, "Outgoing in reply message of boardcast");
+		h.put(14, "Incoming in typeMatch delete ack");
+		h.put(15, "Outcoming in typeMatch delete ack");
 
 	}
 
@@ -63,14 +65,55 @@ public class P1 {
 		new File(path + "/tuples.txt").createNewFile();
 		String localAddr = InetAddress.getLocalHost().getHostAddress().toString();
 		System.out.println(localAddr + " at port number: " + port);
+		
+		if (new File("/tmp/pzhu/").setReadable(true, false) 
+				&& new File("/tmp/pzhu/").setWritable(true, false) 
+				&& new File("/tmp/pzhu/").setExecutable(true, false)) {
+            System.out.println("P1: successfully changed the directory " + "/tmp/pzhu" + " to 777");
+        } else {
+            System.out.println("P1: failed to change the directory " + "/tmp/pzhu" + " to 777");
+        }
+		
+		if (new File("/tmp/pzhu/linda/").setReadable(true, false) 
+				&& new File("/tmp/pzhu/linda/").setWritable(true, false) 
+				&& new File("/tmp/pzhu/linda/").setExecutable(true, false)) {
+            System.out.println("P1: successfully changed the directory " + "/tmp/pzhu/linda/" + " to 777");
+        } else {
+            System.out.println("P1: failed to change the directory " + "/tmp/pzhu/linda/" + " to 777");
+        }
+		
+		if (new File("/tmp/pzhu/linda/"+hostname+"/").setReadable(true, false) 
+				&& new File("/tmp/pzhu/linda/"+hostname+"/").setWritable(true, false) 
+				&& new File("/tmp/pzhu/linda/"+hostname+"/").setExecutable(true, false)) {
+            System.out.println("P1: successfully changed the directory " + "/tmp/pzhu/linda/"+hostname+"/" + " to 777");
+        } else {
+            System.out.println("P1: failed to change the directory " + "/tmp/pzhu/linda/"+hostname+"/" + " to 777");
+        }
+		
+		if (new File("/tmp/pzhu/linda/"+hostname+"/nets.txt").setReadable(true, false) 
+				&& new File("/tmp/pzhu/linda/"+hostname+"/nets.txt").setWritable(true, false)) {
+            System.out.println("P1: successfully changed the file " + "/tmp/pzhu/linda/"+hostname+"/nets.txt" + " to 666");
+        } else {
+            System.out.println("P1: failed change the file " + "/tmp/pzhu/linda/"+hostname+"/nets.txt" + " to 666");
+        }
+		
+		if (new File("/tmp/pzhu/linda/"+hostname+"/tuples.txt").setReadable(true, false) 
+				&& new File("/tmp/pzhu/linda/"+hostname+"/tuples.txt").setWritable(true, false)) {
+            System.out.println("P1: successfully changed the file " + "/tmp/pzhu/linda/"+hostname+"/tuples.txt" + " to 666");
+        } else {
+            System.out.println("P1: failed change the file " + "/tmp/pzhu/linda/"+hostname+"/tuples.txt" + " to 666");
+        }
 
 		nets.put(0, new String[] { hostname, localAddr, port });
-		hostCount = 1;
+		//hostCount = 1;
 		
-		
+		fileOut = new FileOutputStream(P1.path + "/tuples.txt");
+		obOut = new ObjectOutputStream(fileOut);
+		obOut.writeObject(P1.tupleSpace);
+		obOut.close();
 
 		while (true) {
-
+			Thread.sleep(50);
 			System.out.print("linda> ");
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 			String cmd = br.readLine().trim();
@@ -97,7 +140,10 @@ public class P1 {
 						// System.out.println("recp = "+Arrays.toString(recp));
 						Packet myPacket = new Packet(0, recp[0]);					//send add instruction
 						Client addClient = new Client();
+						
 						addClient.sendTo(recp[1], recp[2], myPacket);
+						
+						
 						pacsRecvd[i] = addClient.reply;
 						if (pacsRecvd[i] == null) {
 							System.out.println("No reply received");
@@ -107,7 +153,7 @@ public class P1 {
 							Hashtable<Integer, String[]> recvdNets = pacsRecvd[i].nets;
 							Check.mergeNets(updateNets, recvdNets);
 						} else if (pacsRecvd[i].s.equals("no")) {
-							System.out.println("Invalid hostname, correct hostname " + pacsRecvd[i].nets.get(0)[0]
+							System.out.println("Invalid hostname of "+recp[0]+", correct hostname of " + pacsRecvd[i].nets.get(0)[0]
 									+ " is fetched and updated!");
 							addCmdList.set(i, new String[] { pacsRecvd[i].nets.get(0)[0], recp[1], recp[2] });
 
@@ -134,7 +180,7 @@ public class P1 {
 					}
 					if (ackCount == addCmdList.size()) {
 						nets = updateNets;
-						hostCount = nets.size();
+						//hostCount = nets.size();
 						fileOut = new FileOutputStream(path + "/nets.txt");
 						obOut = new ObjectOutputStream(fileOut);
 						obOut.writeObject(nets);
@@ -160,17 +206,18 @@ public class P1 {
 				if (tuple != null || tuple.size() != 0) {
 					
 					Packet[] pacsRecvd = new Packet[1];
-					int host = Check.md5Sum(tuple) % hostCount;
+					int host = Check.md5Sum(tuple) % nets.size();
 					String destAddr = nets.get(host)[1];
 					String destPort = nets.get(host)[2];
 					Packet myPacket = new Packet(2, tuple);						//send out instruction
-					System.out.println("Put tuple "+cmd+" on "+destAddr+":"+destPort);
+					System.out.println("Try to put tuple "+cmd+" on "+destAddr+":"+destPort);
 					
 					Client outClient = new Client();
 					outClient.sendTo(destAddr, destPort, myPacket);
 					pacsRecvd[0]=outClient.reply;
 					if (pacsRecvd[0].type == 3) {								//receive out reply
 						System.out.println(pacsRecvd[0].s);
+						System.out.println("OUT instruction complete, put tuple "+cmd+" on "+destAddr+":"+destPort);
 					}
 					
 				}else {
@@ -178,29 +225,7 @@ public class P1 {
 				}
 			}
 			
-/*			else if (cmd.length() > 4 && cmd.substring(0,5).toLowerCase().equals("broad")) {			//Handle broad
-				List<Object> t = new ArrayList<>();
-				t.add("this");
-				t.add(1200);
-				t.add(3.5);
-				Client broadClient = new Client();
-				broadClient.broadcast(nets, t);
-				Packet[] pacsRecvd = new Packet[nets.size()];
-				
-				int replyNum = 0;
-				while (replyNum != nets.size()) {
-					
-					pacsRecvd[0]=broadClient.msgQ.poll();
-					
-					if (pacsRecvd[0]!=null && pacsRecvd[0].type == 11) {
-						
-						System.out.println(pacsRecvd[0].s);
-						replyNum++;
-					}
-				}
-				
-			}
-*/			
+	
 			else if (cmd.trim().length() > 2 && cmd.trim().substring(0, 2).toLowerCase().equals("rd")) { 	//Handle rd
 				cmd = cmd.trim().substring(2);
 				if (Check.checkRdCmd(cmd) == false) {
@@ -220,11 +245,11 @@ public class P1 {
 						}
 					}
 					if (!broadcast) {
-						int host = Check.md5Sum(tuple) % hostCount;
+						int host = Check.md5Sum(tuple) % nets.size();
 						String destAddr = nets.get(host)[1];
 						String destPort = nets.get(host)[2];
 						System.out.println("Get tuple "+cmd+" from "+ destAddr+":"+destPort);
-						
+						//System.out.println("sent out(rd) hash ="+Check.hashString(Check.tupleToString(tuple)));
 						
 						
 						Packet myPacket = new Packet(6, tuple);						//send rd no typeMatch inst
@@ -232,12 +257,11 @@ public class P1 {
 						Client rdClient = new Client();
 						rdClient.sendTo(destAddr, destPort, myPacket);
 						
-						
-						//pacsRecvd[0]=Client.reply;
 						while (pacsRecvd[0] == null) {
 							pacsRecvd[0]=rdClient.reply;
 							if (pacsRecvd[0] != null && pacsRecvd[0].type == 7) {	//receive rd no typeMatch reply
 								System.out.println(pacsRecvd[0].s);
+								System.out.println("Tuple = "+Check.displayTuple(pacsRecvd[0].tuple));
 								break;
 							}
 						}
@@ -247,20 +271,141 @@ public class P1 {
 						Client rdbroadClient = new Client();
 						Packet outPacket = new Packet(10, nets, tuple);		//send rd typeMatch broadcast request
 						rdbroadClient.broadcast(nets, outPacket);
-						
-						while (pacsRecvd[0] == null) {
-							pacsRecvd[0]=rdbroadClient.reply;
-							if (pacsRecvd[0] != null && pacsRecvd[0].type == 11) {	//receive rd no typeMatch reply
-								System.out.println("Received matched tuple from "+pacsRecvd[0].s);
-								System.out.println("tuple = " + Check.displayTuple(pacsRecvd[0].tuple));
-								break;
+						Thread.sleep(200);
+						if ((pacsRecvd[0]=rdbroadClient.reply) != null) {
+							System.out.println("Received matched tuple from "+pacsRecvd[0].s);
+							System.out.println("tuple = " + Check.displayTuple(pacsRecvd[0].tuple));
+						}
+						else {
+							while ((pacsRecvd[0]=rdbroadClient.reply) == null) {
+								//System.out.println("in side while: receive rd type match reply");
+								if (pacsRecvd[0] != null && pacsRecvd[0].type == 11) {	//receive rd typeMatch reply
+									//System.out.println("in side if: receive rd type match reply");
+									System.out.println("Received matched tuple from "+pacsRecvd[0].s);
+									System.out.println("Tuple = " + Check.displayTuple(pacsRecvd[0].tuple));
+									break;
+								}
 							}
 						}
+						
+						
+						System.out.println("rd typematch finished");
+						
 					}
 					
 					
 				}else {
-					System.out.println("Something went wrong, rd instruction is not complete");
+					System.out.println("Something went wrong, rd instruction is not complete");		
+				}
+			}
+			
+			else if (cmd.trim().length() > 2 && cmd.trim().substring(0, 2).toLowerCase().equals("in")) {	//Handle in
+				cmd = cmd.trim().substring(2);
+				tuple = null;
+				if (Check.checkRdCmd(cmd) == false) {		//Use check parser to perform in instruction
+					continue;
+				}
+				
+				boolean broadcast = false;
+				if (tuple != null || tuple.size() != 0) {	
+					Packet[] pacsRecvd;
+					
+					for (Object obj : tuple) {
+						if (obj instanceof String[]) {
+							broadcast = true;
+							break;
+
+						}
+					}
+					if (!broadcast) {
+						pacsRecvd = new Packet[2];				//1:1st communication. 2: 2nd communication
+						int host = Check.md5Sum(tuple) % nets.size();
+						String destAddr = nets.get(host)[1];
+						String destPort = nets.get(host)[2];
+						System.out.println("Try to get tuple "+cmd+" from "+ destAddr+":"+destPort);
+						//System.out.println("sent out(in) hash ="+Check.hashString(Check.tupleToString(tuple)));
+						
+						
+						Packet outPacket1 = new Packet(4, "1st", tuple);						//send in no typeMatch inst
+						
+						Client inClient1 = new Client();
+						inClient1.sendTo(destAddr, destPort, outPacket1);
+						
+						pacsRecvd[0] = null;
+						while (pacsRecvd[0] == null) {
+							pacsRecvd[0]=inClient1.reply;
+							if (pacsRecvd[0] != null && pacsRecvd[0].type == 5) {	//receive in w/o typeMatch reply
+								System.out.println(pacsRecvd[0].s);
+								break;
+							}
+						}
+						List<Object> recTuple = pacsRecvd[0].tuple;
+						
+						Packet outPacket2 = new Packet(4, "2nd", recTuple);
+						Client inClient2 = new Client();
+						inClient2.sendTo(destAddr, destPort, outPacket2);
+						
+						pacsRecvd[1] = null;
+						while (pacsRecvd[1] == null) {
+							pacsRecvd[1]=inClient2.reply;
+							if (pacsRecvd[1] != null && pacsRecvd[1].type == 5) {	//receive in w/o typeMatch reply
+								System.out.println(pacsRecvd[1].s);
+								System.out.println("IN instruction complete, get tuple from "+ destAddr +": "+ destPort);
+								System.out.println("Tuple = "+ Check.displayTuple(recTuple));
+								break;
+							}
+						}
+						
+					}
+					else {
+						pacsRecvd = new Packet[2];
+						Client inbroadClient1 = new Client();
+						Packet outPacket1 = new Packet(12, nets, tuple);		//send in typeMatch broadcast request
+						inbroadClient1.broadcast(nets, outPacket1);
+						
+						while ((pacsRecvd[0]=inbroadClient1.reply) == null) {
+							
+							if (pacsRecvd[0] != null && pacsRecvd[0].type == 13) {	//receive in no typeMatch reply
+								System.out.println("Received matched tuple from "+pacsRecvd[0].s);
+								System.out.println("Tuple = " + Check.displayTuple(pacsRecvd[0].tuple));
+								
+								break;
+								
+							}
+						}
+						
+						String destAddr = null;
+						String destPort = null;
+						
+						for (int i = 0; i < P1.nets.size(); i++) {
+							String[] array = P1.nets.get(i);
+							if (array[1].equals(pacsRecvd[0].s)) {
+								destAddr = array[1];
+								destPort = array[2];
+							}
+						}
+						
+						if (destAddr != null && destPort != null) {
+							Client inbroadClient2 = new Client();
+							Packet outPacket2 = new Packet(14, pacsRecvd[0].tuple);
+							inbroadClient2.sendTo(destAddr, destPort, outPacket2);
+							while (pacsRecvd[1] == null) {
+								pacsRecvd[1]=inbroadClient2.reply;
+								if (pacsRecvd[1] != null && pacsRecvd[1].type == 15) {	//receive in w/o typeMatch reply
+									System.out.println(pacsRecvd[1].s);
+									break;
+								}
+							}
+						}
+						
+						System.out.println("in typematch broadcast finished");
+						System.out.println("linda> ");
+						
+					}
+					
+					
+				}else {
+					System.out.println("Something went wrong, rd instruction is not complete");		
 				}
 			}
 

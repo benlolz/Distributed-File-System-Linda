@@ -9,6 +9,7 @@ public class Client {
 	public Packet reply;
 	public Queue<Packet> msgQ;
 	
+	
 	public Client() {
 		msgQ = new LinkedList<>();
 	}
@@ -16,28 +17,47 @@ public class Client {
 	public void sendTo(String addr, String port, Packet packet) {
 
 		try {
-			Socket sock = new Socket(addr, Integer.parseInt(port));
+			Socket sock;
+			
+			ObjectOutputStream out;
+			ObjectInputStream in;
+			try {
+				sock = new Socket(addr, Integer.parseInt(port));
+				out = new ObjectOutputStream(sock.getOutputStream());
+				out.writeObject(packet);
+				out.flush();
+				in = new ObjectInputStream(sock.getInputStream());
+				
+				Packet recPack = null;
+				//recPack = (Packet) in.readObject();
+				while (recPack == null) {
+					recPack = (Packet) in.readObject();
+					synchronized (msgQ) {
+						if(recPack != null) {
+							msgQ.offer(recPack);
+							msgQ.notifyAll();
+							break;
+						}
+						
+					}
 
-			ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
-			out.writeObject(packet);
-			out.flush();
-			ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
-			Packet recPack;
-			recPack = (Packet) in.readObject();
-			if (recPack != null) {
-				synchronized (msgQ) {
-					msgQ.offer(recPack);
-					msgQ.notifyAll();
 				}
-
-			}
-			if (msgQ.size() != 0) {
-				reply = msgQ.poll();
+				if (!msgQ.isEmpty()) {
+					reply = msgQ.peek();
+					
+				}
+				out.close();
+				in.close();
+				sock.close();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				System.out.println("Connection failed, please check the IP and port number and restart the program P1");
+				System.exit(0);
 			}
 			
-			sock.close();
+			
 
-		} catch (NumberFormatException | IOException | ClassNotFoundException e) {
+		} catch (NumberFormatException/* | IOException | ClassNotFoundException */e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -50,22 +70,41 @@ public class Client {
 		
 		try {
 			int num = nets.size();
+			Thread[] workers= new Thread[num];
+			//Socket[] socks = new Socket[num];
+			
+			
 			for (int i = 0; i < num; i++) {
 
-				String destAddr = nets.get(i)[1];
-				String destPort = nets.get(i)[2];
-				System.out.println("Sending to NO." + i + " destination = " + destAddr + " at port " + destPort);
+				String destAddr = nets.get(i)[1];	//destination IP
+				String destPort = nets.get(i)[2];	//destination port
+				System.out.println("Sending to destination = " + destAddr + " at port " + destPort);
 				Socket sock = new Socket(destAddr, Integer.parseInt(destPort));
 				ClientWorker worker = new ClientWorker(outPacket, sock);
 				Thread clientWorkerT = new Thread(worker);
+				workers[i] = clientWorkerT;
 				clientWorkerT.start();
 
 			}
-			while (msgQ != null || msgQ.size() != 0) {
-				reply = msgQ.poll();
-				break;
+			//Thread.sleep(500);
+			
+			while (msgQ.isEmpty()) {
+				System.out.print("");
+				//Thread.sleep(1000);
 			}
-
+			
+			//System.out.println("Received "+msgQ.size()+ " numbers of replies");
+			System.out.println("Type match found and close other blocking connections ");
+			for(int i = 0; i < num; i++) {
+				workers[i].interrupt();
+				//if (socks[i] != null) {
+				//	socks[i].close();
+				//}
+				
+			}
+			reply = msgQ.peek();
+			System.out.println(P1.hostname+"'s Client worker has finished");
+			
 		} catch (NumberFormatException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -89,25 +128,42 @@ public class Client {
 			// TODO Auto-generated method stub
 
 			try {
+				
+				Thread.sleep(200);
 				ObjectOutputStream out = new ObjectOutputStream(sock.getOutputStream());
 				out.writeObject(packet);
 				out.flush();
 
 				ObjectInputStream in = new ObjectInputStream(sock.getInputStream());
-				Packet recPack;
-				recPack = (Packet) in.readObject();
-
-				if (recPack != null) {
-					synchronized (msgQ) {
-						msgQ.offer(recPack);
-						msgQ.notifyAll();
+				//System.out.println("Client worker got reply");
+				Packet recPack = null;
+				//recPack = (Packet) in.readObject();
+				//System.out.println("replied pack = "+recPack);
+				
+					//while (recPack  == null) {
+					if (!msgQ.isEmpty()) {
+						//reply = msgQ.peek();
+						//System.out.println(Thread.currentThread().getId()+" put message in msgQ"+" and msgQ size = "+msgQ.size());
+						
 					}
-					// System.out.println("Client sock close");
-				}
+					
+					while(msgQ.isEmpty()) {	
+						recPack = (Packet) in.readObject();
+						msgQ.offer(recPack);
+						//System.out.println(Thread.currentThread().getId()+" put message in msgQ"+" and msgQ size = "+msgQ.size());
+						
+						
+					}
+					//reply = msgQ.peek();
+					
+					
+					
+				
+				
 				out.close();
 				in.close();
 				sock.close();
-			} catch (ClassNotFoundException | IOException e) {
+			} catch (ClassNotFoundException | IOException | InterruptedException e)  {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -117,4 +173,5 @@ public class Client {
 
 
 }
+
 

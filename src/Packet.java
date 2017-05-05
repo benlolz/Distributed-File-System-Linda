@@ -9,23 +9,29 @@ public class Packet implements Serializable {
 	 * 1: outgoing add instruction 				Packet(1, "yes/no", nets); 
 	 * 2: incoming out instruction 				Packet(2, tuple);
 	 * 3: outgoing out instruction 				Packet(3, "Tuple added to the Tuple Space");
-	 * 4: incoming in no typeMatch inst 
-	 * 5: outgoing in no typeMatch inst 
-	 * 6: incoming rd no typeMatch inst			Packet(6, tuple);
-	 * 7: outgoing rd no typeMatch inst 		Packet(7, "Tuple found and send back by"+P1.hostname, tuple);
+	 * 4: incoming in w/o typeMatch inst 		Packet(4, "1st/2nd", tuple)
+	 * 5: outgoing in w/o typeMatch inst 		Packet(5, "Tuple found on P1.hostname, tuple")
+	 * 6: incoming rd w/o typeMatch inst		Packet(6, tuple);
+	 * 7: outgoing rd w/o typeMatch inst 		Packet(7, "Tuple found and send back by"+P1.hostname, tuple);
 	 * 8: ack request 							Packet(8, "ack", nets); 
 	 * 9: ack sent 								Packet(9);
 	 * 10: incoming rd typeMatch instruction	Packet(10, nets, tuple);
 	 * 11: outgoing rd typeMatch inst reply		Packet(11, s, tuple);
 	 * 12: incoming in typeMatch instruction	Packet(12, nets, tuple);
 	 * 13: outgoing in typeMatch inst reply		Packet(13, s, tuple);
+	 * 14: incoming in typeMatch delete ack		Packet(14, tuple)
+	 * 15: outgoing in typeMatch delete ack		Packet(15, s)
 
 	 */
 
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 912922114076434640L;
+	/**
+	 * 
+	 */
+	
 	int type;
 	Hashtable<Integer, String[]> nets;
 	List<Object> tuple;
