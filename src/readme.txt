@@ -1,7 +1,4 @@
-Name: Pengyu Zhu
-Student ID:	1118641
-Email: pzhu@scu.edu
-Directory: /tmp/pzhu/linda/<hostname>/
+
 
 
 Running instructions:
